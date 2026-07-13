@@ -1,0 +1,68 @@
+# Cara Deploy ke Netlify (agar data tersimpan permanen)
+
+Struktur folder ini:
+```
+epilog-site/
+├── index.html                 ← halaman web EPILOG
+├── netlify.toml                ← konfigurasi Netlify
+├── package.json                ← dependency untuk function
+└── netlify/functions/state.mjs ← backend penyimpanan data (pakai Netlify Blobs)
+```
+
+## Kenapa sebelumnya data hilang?
+Sebelumnya web ini cuma menyimpan data di `localStorage` browser — itu HANYA
+tersimpan di browser masing-masing orang, tidak dibagikan ke pengunjung lain,
+dan bisa hilang kalau cache dibersihkan.
+
+Sekarang ditambahkan **Netlify Function** (`/api/state`) yang menyimpan semua
+data (daftar hadir/tidak hadir, foto galeri, logo, info acara) ke
+**Netlify Blobs** — storage bawaan Netlify yang persisten di server. Jadi:
+- Semua pengunjung melihat data yang SAMA
+- Kalau website di-refresh, dibuka lagi besok, atau dibuka dari HP lain →
+  data tetap ada
+- Data hanya hilang kalau site di Netlify dihapus, atau admin sengaja klik
+  "Hapus Semua Data"
+
+## Langkah Deploy
+
+### Opsi A — Drag & drop (paling gampang, TAPI functions perlu Git)
+Netlify **Drag & Drop** hanya untuk file statis, tidak bisa menjalankan
+Netlify Functions. Jadi untuk fitur simpan-permanen ini, **gunakan Opsi B**.
+
+### Opsi B — Deploy lewat Git (disarankan)
+1. Buat repository baru di GitHub (bisa lewat web GitHub, upload semua file
+   di folder `epilog-site/` ke situ).
+2. Buka https://app.netlify.com → **Add new site** → **Import an existing
+   project** → pilih repo GitHub tadi.
+3. Build settings biarkan default (Netlify otomatis baca `netlify.toml`).
+   - Publish directory: `.`
+   - Functions directory: `netlify/functions`
+4. Klik **Deploy site**. Tunggu build selesai (1–2 menit).
+5. Buka URL yang diberikan Netlify — coba isi RSVP dari HP lain, lalu cek
+   panel admin (klik ikon ⚙ di pojok kanan bawah, password: `epilog2026`).
+   Data seharusnya konsisten di semua perangkat.
+
+### Opsi C — Netlify CLI (kalau sudah familiar terminal)
+```bash
+npm install -g netlify-cli
+cd epilog-site
+netlify login
+netlify init
+netlify deploy --prod
+```
+
+## Mengganti password admin
+Password admin ada di **DUA tempat** dan harus sama persis:
+1. `index.html` → cari `const ADMIN_PASSWORD = 'epilog2026';`
+2. `netlify/functions/state.mjs` → cari `const ADMIN_PASSWORD = "epilog2026";`
+
+Ganti keduanya ke password baru, lalu deploy ulang.
+
+## Catatan tentang foto/video di galeri
+Foto & video disimpan sebagai base64 langsung di dalam data JSON (bukan file
+terpisah). Ini praktis dan tidak perlu setup tambahan, tapi kalau banyak
+banget foto/video beresolusi tinggi diupload, ukurannya bisa jadi besar.
+Untuk acara gathering kelas biasa (puluhan foto) ini masih aman. Kalau nanti
+mau upload video panjang/beresolusi besar, sebaiknya kompres dulu sebelum
+upload, atau beri tahu saya supaya bisa saya buatkan solusi upload ke
+storage terpisah (mis. Cloudinary) khusus untuk galeri.
